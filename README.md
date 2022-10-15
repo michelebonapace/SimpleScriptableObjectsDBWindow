@@ -34,7 +34,7 @@ Then you can find your window in the menu:
 
 
 ## Examples
-You can all the above examles in the **SimpleScriptableObjectDBExample** folder
+You can see all the above examles in the **SimpleScriptableObjectDBExample** folder.
 
 ## Not supported Types
 Currently **structs** and **Arrays** are not supported.

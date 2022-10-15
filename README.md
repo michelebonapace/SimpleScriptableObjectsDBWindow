@@ -3,6 +3,8 @@
 
 This plugin is meant to be used in project with scriptable objects with many instances, such as card games.
 
+It uses Reflection in order to create it askying you the smallest possible effort.
+
 It will allow you to see your scriptable objects in a table and filter them in order to find them and work on them quickly.
 
 Example:

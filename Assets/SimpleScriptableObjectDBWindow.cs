@@ -199,7 +199,7 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
                     if (range != null)
                     {
                         filters[currentIndex] = EditorGUILayout.IntSlider("Min", (int)(filters[currentIndex]), (int)range.min, (int)range.max, GUILayout.Width(itemsWidth.numberRangedWidth + 200), GUILayout.Height(height));
-                        filters[currentIndex + 1] = EditorGUILayout.IntSlider("Min", (int)(filters[currentIndex + 1]), (int)range.min, (int)range.max, GUILayout.Width(itemsWidth.numberRangedWidth + 200), GUILayout.Height(height));
+                        filters[currentIndex + 1] = EditorGUILayout.IntSlider("Max", (int)(filters[currentIndex + 1]), (int)range.min, (int)range.max, GUILayout.Width(itemsWidth.numberRangedWidth + 200), GUILayout.Height(height));
                     }
                     else
                     {

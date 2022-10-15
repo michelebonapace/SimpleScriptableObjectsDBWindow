@@ -3,7 +3,7 @@
 
 This plugin is meant to be used in project with scriptable objects with many instances, such as card games.
 
-It will allow you to see your scriptable ojbects in a table and filter them in order to find and work on them fast.
+It will allow you to see your scriptable objects in a table and filter them in order to find them and work on them quickly.
 
 Example:
 ![Screen0](https://user-images.githubusercontent.com/28757409/195982882-64fa7f8b-01e0-4ca4-a783-f3b736b1874f.png)
@@ -23,10 +23,10 @@ In order to use the plugin you need to:
     3. Implements a funtion callable from the window menu to show the window calling the SimpleScriptableObjectDBWindow **Setup** function passing your ScriptableObject Type
     4. **(Optional)** Override width of each element type calling **OverrideWidths**
     
-    You can see an example below
+    You can see an example below:
     ![Screen3](https://user-images.githubusercontent.com/28757409/195983572-ccf02adf-bb7d-4833-89a7-ced90cf79f29.png)
     
-Then you can find your window in the menu
+Then you can find your window in the menu:
 
 ![immagine](https://user-images.githubusercontent.com/28757409/195983775-f67733cc-4e4f-473a-bacc-e5cce184f963.png)
 

@@ -8,8 +8,8 @@ It will allow you to see your scriptable ojbects in a table and filter them in o
 Example:
 ![Screen0](https://user-images.githubusercontent.com/28757409/195982882-64fa7f8b-01e0-4ca4-a783-f3b736b1874f.png)
 
-Example with filter:
-![Screen1](https://user-images.githubusercontent.com/28757409/195983071-284c889b-18e1-4f99-a6e5-695cc8e3aa8f.png)
+Example with filters:
+![immagine](https://user-images.githubusercontent.com/28757409/195983994-4eefe852-fb79-49ee-a09d-0ea4142030b4.png)
 
 Example with search:
 ![Screen2](https://user-images.githubusercontent.com/28757409/195983087-e94bda32-c0da-429e-8c2b-8c41d8c8bcf3.png)

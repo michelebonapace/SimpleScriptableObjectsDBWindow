@@ -3,6 +3,7 @@ using UnityEditor;
 using System.Collections.Generic;
 using System;
 using System.Reflection;
+using System.Collections;
 using UnityEditor.AnimatedValues;
 
 public class SimpleScriptableObjectDBWindow : EditorWindow
@@ -15,7 +16,7 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
         public int stringWidth;
         public int enumWidth;
         public int colorWidth;
-        public int vectorWidth;
+        public int vector3Width;
         public int vector2Width;
         public int referenceWidth;
 
@@ -26,7 +27,7 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
             boolWidth = 100;
             stringWidth = 200;
             enumWidth = 100;
-            vectorWidth = 300;
+            vector3Width = 300;
             vector2Width = 200;
             referenceWidth = 200;
             colorWidth = 200;
@@ -34,14 +35,9 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
     }
     static Color verticalLinesColor;
     const int height = 20;
-    const int increasedHeight = 60;
     static ItemsWidth itemsWidth;
 
     static List<ScriptableObject> itemList;
-    static bool sortBy;
-    static bool enableBy;
-
-    protected static HashSet<Type> customTypes;
 
     private static AnimBool bUseFilters;
     private static List<object> filters;
@@ -61,13 +57,15 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
     private static int currentPage = 0;
     private static int totalFilteredItems = 0;
 
-    protected static void OverrideWidths(int numberWidth, int numberRangedWidth, int boolWidth, int enumWidth, int vectorWidth, int vector2Width, int colorWidth, int referenceWidth)
+    private static GUIStyle ErrorStyle;
+
+    protected static void OverrideWidths(int numberWidth, int numberRangedWidth, int boolWidth, int enumWidth, int vector3Width, int vector2Width, int colorWidth, int referenceWidth)
     {
         itemsWidth.numberWidth = numberWidth;
         itemsWidth.numberRangedWidth = numberRangedWidth;
         itemsWidth.boolWidth = boolWidth;
         itemsWidth.enumWidth = enumWidth;
-        itemsWidth.vectorWidth = vectorWidth;
+        itemsWidth.vector3Width = vector3Width;
         itemsWidth.vector2Width = vector2Width;
         itemsWidth.colorWidth = colorWidth;
         itemsWidth.referenceWidth = referenceWidth;
@@ -124,17 +122,22 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
             {
                 filters.Add((int)-1);
             }           
-        }        
+        }
+        
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="ScriptableObjectType">The ScriptableObjectType for which generate the window</param>
+    /// <param name="itemsPerPage">Items in list per page, if <=0, there will be no limit </param>
     protected static void Setup(Type ScriptableObjectType, int itemsPerPage = 20)
     {
         maxItemsPerPage = itemsPerPage;
         verticalLinesColor = new Color(0.3f, 0.3f, 0.3f, 1);
+        filterString = "";
 
         itemsWidth = new ItemsWidth();
-        customTypes = new HashSet<Type>();
-        customTypes.Add(ScriptableObjectType);
 
         scriptableObjectToVisualize = ScriptableObjectType;
         ScriptableObject[] cards = Resources.LoadAll<ScriptableObject>("");
@@ -161,6 +164,7 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
         // currentIndex and currentAnimIndex are used to track fileterlist current index
         int currentIndex = 0;
         int currentAnimIndex = 0;
+
         foreach (FieldInfo field in allFields)
         {
             string fieldName = char.ToUpper(field.Name[0]) + field.Name.Substring(1);
@@ -274,13 +278,44 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
                 currentIndex++;
                 currentAnimIndex++;
             }
-            else if (field.FieldType == typeof(string))
-            {
+        }
+        EditorGUILayout.EndVertical();
+    }
 
+    private void FilterItemsByString()
+    {
+        FieldInfo[] allFields = scriptableObjectToVisualize.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
+        EditorGUILayout.BeginVertical();
+        filterString = EditorGUILayout.TextField(new GUIContent("Search", "Search in the name and every string of the scriptable object"), filterString, GUILayout.Width(500));
+        filterString = filterString.ToLower();
+        if (filterString != "")
+        {
+            Hashtable texts = new Hashtable();
+            foreach (ScriptableObject s in itemList)
+            {
+                if (!itemsToRemove.Contains(s))
+                {
+                    texts.Add(s, s.name);
+                    foreach (FieldInfo field in allFields)
+                    {
+                        if (field.FieldType == typeof(string))
+                        {
+                            texts[s] = (string)texts[s] + (string)field.GetValue(s);
+                        }
+                    }
+                }
+            }
+            foreach (ScriptableObject s in itemList)
+            {
+                if (texts.Contains(s))
+                {
+                    if (!((string)texts[s]).ToLower().Contains(filterString))
+                    {
+                        itemsToRemove.Add(s);
+                    }
+                }
             }
         }
-
-
         EditorGUILayout.EndVertical();
     }
 
@@ -292,11 +327,14 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
             anim.valueChanged.AddListener(Repaint);
         }
         bUseFilters.valueChanged.AddListener(Repaint);
-    }
 
+    }
 
     void OnGUI()
     {
+        ErrorStyle = new GUIStyle(GUI.skin.label) {};
+        ErrorStyle.normal.textColor = Color.red;
+
         oldItemsToRemove = itemsToRemove;
         itemsToRemove = new HashSet<ScriptableObject>();
         EditorGUILayout.Space(10);
@@ -307,13 +345,14 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
             FilterItems();
         }
         CheckResetPageIndex();
-
         EditorGUILayout.EndFadeGroup();
+
+        FilterItemsByString();
+
         EditorGUILayout.Space(10);
         ExtractAndGenerateFields();
 
         GeneratePageList();
-        EditorGUILayout.Space(20);
 
     }
 
@@ -346,6 +385,7 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
 
     private void GeneratePageList()
     {
+        if (maxItemsPerPage <= 0) return;
         int totalPages = (totalFilteredItems / maxItemsPerPage) + ((totalFilteredItems % maxItemsPerPage)>0?1:0);
         EditorGUILayout.BeginHorizontal();
         var style = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, richText = true };
@@ -365,6 +405,7 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
             }
         }
         EditorGUILayout.EndHorizontal();
+        EditorGUILayout.Space(20);
     }
 
     private void ExtractAndGenerateSingleField(FieldInfo field, object father)
@@ -397,7 +438,7 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
             }
             if (EditorGUI.EndChangeCheck())
             {
-                Undo.RecordObject((UnityEngine.Object)father, "changed "+ field.Name + " of "+ father.ToString());
+                Undo.RecordObject((UnityEngine.Object)father, "changed " + field.Name + " of " + father.ToString());
                 field.SetValue(father, newValue);
                 EditorUtility.SetDirty((UnityEngine.Object)father);
             }
@@ -424,7 +465,7 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
         else if (field.FieldType == typeof(string))
         {
             EditorGUI.BeginChangeCheck();
-            newValue = EditorGUILayout.TextField( (string)(fieldValue), GUILayout.Width(itemsWidth.stringWidth), GUILayout.Height(height));
+            newValue = EditorGUILayout.TextField((string)(fieldValue), GUILayout.Width(itemsWidth.stringWidth), GUILayout.Height(height));
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject((UnityEngine.Object)father, "changed " + field.Name + " of " + father.ToString());
@@ -435,7 +476,7 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
         else if (field.FieldType == typeof(Color))
         {
             EditorGUI.BeginChangeCheck();
-            newValue = EditorGUILayout.ColorField( (Color)fieldValue, GUILayout.Width(itemsWidth.colorWidth), GUILayout.Height(height));
+            newValue = EditorGUILayout.ColorField((Color)fieldValue, GUILayout.Width(itemsWidth.colorWidth), GUILayout.Height(height));
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject((UnityEngine.Object)father, "changed " + field.Name + " of " + father.ToString());
@@ -446,7 +487,7 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
         else if (field.FieldType.IsEnum)
         {
             EditorGUI.BeginChangeCheck();
-            newValue = EditorGUILayout.EnumPopup( (Enum)fieldValue, GUILayout.Width(itemsWidth.enumWidth), GUILayout.Height(height));
+            newValue = EditorGUILayout.EnumPopup((Enum)fieldValue, GUILayout.Width(itemsWidth.enumWidth), GUILayout.Height(height));
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject((UnityEngine.Object)father, "changed " + field.Name + " of " + father.ToString());
@@ -456,7 +497,7 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
         }
         else if (field.FieldType == typeof(Vector3))
         {
-            newValue = EditorGUILayout.Vector3Field("", (Vector3)fieldValue, GUILayout.Width(itemsWidth.vectorWidth), GUILayout.Height(height));
+            newValue = EditorGUILayout.Vector3Field("", (Vector3)fieldValue, GUILayout.Width(itemsWidth.vector3Width), GUILayout.Height(height));
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject((UnityEngine.Object)father, "changed " + field.Name + " of " + father.ToString());
@@ -476,7 +517,7 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
         }
         else if (field.FieldType == typeof(Vector3Int))
         {
-            newValue = EditorGUILayout.Vector3IntField("", (Vector3Int)fieldValue, GUILayout.Width(itemsWidth.vectorWidth), GUILayout.Height(height));
+            newValue = EditorGUILayout.Vector3IntField("", (Vector3Int)fieldValue, GUILayout.Width(itemsWidth.vector3Width), GUILayout.Height(height));
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject((UnityEngine.Object)father, "changed " + field.Name + " of " + father.ToString());
@@ -493,7 +534,7 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
                 field.SetValue(father, newValue);
                 EditorUtility.SetDirty((UnityEngine.Object)father);
             }
-        }      
+        }
         else if (field.FieldType == typeof(Sprite))
         {
             newValue = (Sprite)EditorGUILayout.ObjectField((Sprite)fieldValue, typeof(Sprite), false, GUILayout.Width(itemsWidth.referenceWidth));
@@ -504,24 +545,29 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
                 EditorUtility.SetDirty((UnityEngine.Object)father);
             }
         }
-        else foreach (Type T in customTypes)
+        else if (field.FieldType.IsArray)
         {
-            if (field.FieldType == T)
+            EditorGUILayout.LabelField("Array are not supported", ErrorStyle, GUILayout.Width(itemsWidth.referenceWidth), GUILayout.Height(height));
+        }
+        else if (field.FieldType.IsValueType && !field.FieldType.IsEnum)
+        {
+            EditorGUILayout.LabelField("Struct are not supported", ErrorStyle, GUILayout.Width(itemsWidth.referenceWidth), GUILayout.Height(height));
+        }
+        else
+        {
+            newValue = (UnityEngine.Object)EditorGUILayout.ObjectField((UnityEngine.Object)fieldValue, field.FieldType, false, GUILayout.Width(itemsWidth.referenceWidth), GUILayout.Height(height));
+            if (EditorGUI.EndChangeCheck())
             {
-                newValue = (UnityEngine.Object)EditorGUILayout.ObjectField( (UnityEngine.Object)fieldValue, T, false, GUILayout.Width(itemsWidth.referenceWidth), GUILayout.Height(height));
-                if (EditorGUI.EndChangeCheck())
-                {
-                    Undo.RecordObject((UnityEngine.Object)father, "changed " + field.Name + " of " + father.ToString());
-                    field.SetValue(father, newValue);
-                    EditorUtility.SetDirty((UnityEngine.Object)father);
-                }
+                Undo.RecordObject((UnityEngine.Object)father, "changed " + field.Name + " of " + father.ToString());
+                field.SetValue(father, newValue);
+                EditorUtility.SetDirty((UnityEngine.Object)father);
             }
         }
     }
 
     private void GenerateSingleFieldDescription(FieldInfo field)
     {
-        int width = 0;
+        int width = itemsWidth.referenceWidth;
         if (field.FieldType == typeof(int)|| field.FieldType == typeof(float))
         {
             if (field.GetCustomAttribute<RangeAttribute>() != null)
@@ -551,7 +597,7 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
         }
         else if (field.FieldType == typeof(Vector3))
         {
-            width = itemsWidth.vectorWidth;
+            width = itemsWidth.vector3Width;
         }
         else if (field.FieldType == typeof(Vector2))
         {
@@ -559,30 +605,22 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
         }
         else if (field.FieldType == typeof(Vector3Int))
         {
-            width = itemsWidth.vectorWidth;
+            width = itemsWidth.vector3Width;
         }
         else if (field.FieldType == typeof(Vector2Int))
         {
             width = itemsWidth.vector2Width;
         }
-        else if (field.FieldType == typeof(Sprite))
-        {
-            width = itemsWidth.referenceWidth;
-        }
-        else foreach (Type T in customTypes)
-        {
-            if (field.FieldType == T)
-            {
-                width = itemsWidth.referenceWidth;
-            }
-            }
         string fieldName = char.ToUpper(field.Name[0]) + field.Name.Substring(1);
         EditorGUILayout.LabelField(fieldName, EditorStyles.boldLabel, GUILayout.Width(width));
     }
        
     private void ExtractAndGenerateFields()
     {
-        MainScrollPos = EditorGUILayout.BeginScrollView(MainScrollPos, false, false, GUILayout.MaxHeight((maxItemsPerPage+1)*27 + 20+ 5));
+        if (maxItemsPerPage > 0)
+            MainScrollPos = EditorGUILayout.BeginScrollView(MainScrollPos, false, false, GUILayout.MaxHeight((maxItemsPerPage+1)*27 + 20+ 5));
+        else
+            MainScrollPos = EditorGUILayout.BeginScrollView(MainScrollPos, false, false);
         GUILayout.BeginHorizontal();
         EditorGUILayout.LabelField(scriptableObjectToVisualize.Name +  " Name", GUILayout.Width(itemsWidth.stringWidth));
 
@@ -592,7 +630,7 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
         {
             GenerateSingleFieldDescription(field);
             GUILayout.Space(4);
-            DrawVerticalUILine(15);
+            //DrawVerticalUILine(15);
         }
         GUILayout.EndHorizontal();
 
@@ -607,8 +645,11 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
                 continue;
             }
             totalFilteredItems++;
-            if (totalFilteredItems <= maxItemsPerPage * currentPage) continue;
-            if (totalFilteredItems > maxItemsPerPage* (currentPage+1)) continue;
+            if (maxItemsPerPage > 0)
+            {
+                if (totalFilteredItems <= maxItemsPerPage * currentPage) continue;
+                if (totalFilteredItems > maxItemsPerPage * (currentPage + 1)) continue;
+            }
             GUILayout.BeginHorizontal();
             //System.Text.RegularExpressions.Regex regex = new System.Text.RegularExpressions.Regex("\\(\\w+\\)");
             //EditorGUILayout.LabelField(regex.Replace(scriptableObj.ToString(), ""), GUILayout.Width(itemsWidth.stringWidth));
@@ -625,13 +666,11 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
 
                 ExtractAndGenerateSingleField(field, scriptableObj);
                 GUILayout.Space(4);
-                DrawVerticalUILine();
             }
             GUILayout.EndHorizontal();
             GUILayout.Space(5);
         }
 
-        //DrawUILine();
         EditorGUILayout.EndScrollView();
         EditorGUILayout.EndScrollView();
 
@@ -646,25 +685,4 @@ public class SimpleScriptableObjectDBWindow : EditorWindow
         r.width += 6;
         EditorGUI.DrawRect(r, c);
     }
-
-    private static void DrawUILine(int thickness = 1, int padding = 10)
-    {
-        Rect r = EditorGUILayout.GetControlRect(GUILayout.Height(padding + thickness));
-        r.height = thickness;
-        r.y += padding / 2;
-        r.x -= 2;
-        r.width += 6;
-        EditorGUI.DrawRect(r, Color.grey);
-    }
-
-    private static void DrawVerticalUILine(int addheight = 7, int padding = 0, int thickness = 1)
-    {
-        Rect r = EditorGUILayout.GetControlRect(GUILayout.Width(padding + thickness));
-        r.width = thickness;
-        r.y += padding / 2;
-        r.x -= 2;
-        r.height = height+ addheight;
-        EditorGUI.DrawRect(r, verticalLinesColor);
-    }
-
 }

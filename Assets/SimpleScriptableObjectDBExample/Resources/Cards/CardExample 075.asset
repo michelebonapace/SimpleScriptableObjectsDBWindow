@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 80db8ae6d94b26149bb803d893fae519, type: 3}
+  m_Name: CardExample 075
+  m_EditorClassIdentifier: 
+  type: 3
+  cardname: Card C
+  color: {r: 0.10196078, g: 0.94509804, b: 0.5887265, a: 1}
+  someOtherCard: {fileID: 11400000, guid: c80835b9368011c4eb5b83121a5a6a43, type: 2}
+  someFloat: 3.93
+  count: 2
+  someBool: 1
+  abilityText: 
+  score: 6
+  deck: 2
+  immagine: {fileID: 0}
+  vector3: {x: 0, y: 0, z: 0}
+  vector2: {x: 0, y: 0}
+  vector3int: {x: 0, y: 0, z: 0}
+  vector2int: {x: 0, y: 0}

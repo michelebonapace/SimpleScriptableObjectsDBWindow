@@ -16,7 +16,7 @@ Example with filters:
 Example with search:
 ![Screen2](https://user-images.githubusercontent.com/28757409/195983087-e94bda32-c0da-429e-8c2b-8c41d8c8bcf3.png)
 
-## Implementation
+## Usage
 In order to use the plugin you need to:
 * Put your scriptable objects in the **Resources** folder (or a subfolder of Resources)
 * Create a class that:
